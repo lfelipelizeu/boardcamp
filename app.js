@@ -48,4 +48,37 @@ app.post('/categories', async (req, res) => {
     }
 });
 
+app.get('/games', async (req, res) => {
+    const searchFilter = req.query.name;
+
+    try {
+        if (searchFilter !== undefined) {
+            const games = await connection.query(`
+                SELECT 
+                    games.*, 
+                    categories.name AS "categoryName" 
+                FROM games 
+                    JOIN categories 
+                        ON games."categoryId" = categories.id 
+                    WHERE LOWER (games.name) LIKE LOWER ($1);`, [searchFilter + '%']);
+
+            res.status(200).send(games.rows);
+            return;
+        }
+
+        const games = await connection.query(`
+            SELECT 
+                games.*, 
+                categories.name AS "categoryName" 
+            FROM games 
+                JOIN categories 
+                    ON games."categoryId" = categories.id;`);
+
+        res.status(200).send(games.rows);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+});
+
 app.listen(4000);
