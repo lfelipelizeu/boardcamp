@@ -290,32 +290,32 @@ app.get('/rentals', async (req, res) => {
                         ON rentals."gameId" = games.id 
                     JOIN categories ON games."categoryId" = categories.id;`);
         }
+
+        res.status(200).send(rentals.rows.map((rental) => {
+            return {
+                id: rental.id,
+                customerId: rental.customerId,
+                gameId: rental.gameId,
+                rentDate: rental.rentDate,
+                daysRented: rental.daysRented,
+                returnDate: rental.returnDate,
+                originalPrice: rental.originalPrice,
+                delayFee: rental.delayFee,
+                customer: {
+                    id: rental.customerId,
+                    name: rental.customerName,
+                },
+                game: {
+                    id: rental.gameId,
+                    name: rental.gameName,
+                    categoryId: rental.categoryId,
+                    categoryName: rental.categoryName,
+                },
+            }
+        }));
     } catch {
         res.sendStatus(500);
     }
-
-    res.status(200).send(rentals.rows.map((rental) => {
-        return {
-            id: rental.id,
-            customerId: rental.customerId,
-            gameId: rental.gameId,
-            rentDate: rental.rentDate,
-            daysRented: rental.daysRented,
-            returnDate: rental.returnDate,
-            originalPrice: rental.originalPrice,
-            delayFee: rental.delayFee,
-            customer: {
-                id: rental.customerId,
-                name: rental.customerName,
-            },
-            game: {
-                id: rental.gameId,
-                name: rental.gameName,
-                categoryId: rental.categoryId,
-                categoryName: rental.categoryName,
-            },
-        }
-    }));
 });
 
 app.post('/rentals', async (req, res) => {
