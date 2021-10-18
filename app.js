@@ -323,9 +323,9 @@ app.post('/rentals', async (req, res) => {
 
     try {
         const customer = await connection.query(`SELECT * FROM customers WHERE id = $1`, [customerId]);
-        const gameRentals = await connection.query(`SELECT * FROM rentals WHERE "gameId" = $1`, [gameId]);
+        const gameRentalsOpen = await connection.query(`SELECT * FROM rentals WHERE "gameId" = $1 AND "returnDate" IS NULL`, [gameId]);
         const game = await connection.query(`SELECT * FROM games WHERE id = $1`, [gameId]);
-        if (customer.rows.length === 0 || game.rows.length === 0 || game.rows[0].stockTotal === gameRentals.rows.length || daysRented < 1) {
+        if (customer.rows.length === 0 || game.rows.length === 0 || game.rows[0].stockTotal === gameRentalsOpen.rows.length || daysRented < 1) {
             res.sendStatus(400);
             return;
         }
