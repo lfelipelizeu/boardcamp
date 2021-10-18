@@ -239,6 +239,85 @@ app.put('/customers/:id', async (req, res) => {
     }
 });
 
+app.get('/rentals', async (req, res) => {
+    const { customerId, gameId } = req.query;
+
+    let rentals = [];
+
+    try {
+        if (customerId !== undefined) {
+            rentals = await connection.query(`
+                SELECT 
+                    rentals.*, 
+                    customers.name AS "customerName", 
+                    games.name AS "gameName", 
+                    games."categoryId", 
+                    categories.name AS "categoryName" 
+                FROM rentals 
+                    JOIN customers 
+                        ON rentals."customerId" = customers.id 
+                    JOIN games 
+                        ON rentals."gameId" = games.id 
+                    JOIN categories ON games."categoryId" = categories.id
+                WHERE customers.id = $1;`, [customerId]);
+        } else if (gameId !== undefined) {
+            rentals = await connection.query(`
+                SELECT 
+                    rentals.*, 
+                    customers.name AS "customerName", 
+                    games.name AS "gameName", 
+                    games."categoryId", 
+                    categories.name AS "categoryName" 
+                FROM rentals 
+                    JOIN customers 
+                        ON rentals."customerId" = customers.id 
+                    JOIN games 
+                        ON rentals."gameId" = games.id 
+                    JOIN categories ON games."categoryId" = categories.id
+                WHERE games.id = $1;`, [gameId]);
+        } else {
+            rentals = await connection.query(`
+                SELECT 
+                    rentals.*, 
+                    customers.name AS "customerName", 
+                    games.name AS "gameName", 
+                    games."categoryId", 
+                    categories.name AS "categoryName" 
+                FROM rentals 
+                    JOIN customers 
+                        ON rentals."customerId" = customers.id 
+                    JOIN games 
+                        ON rentals."gameId" = games.id 
+                    JOIN categories ON games."categoryId" = categories.id;`);
+        }
+    } catch {
+        res.sendStatus(500);
+    }
+
+    res.status(200).send(rentals.rows.map((rental) => {
+        return {
+            id: rental.id,
+            customerId: rental.customerId,
+            gameId: rental.gameId,
+            rentDate: rental.rentDate,
+            daysRented: rental.daysRented,
+            returnDate: rental.returnDate,
+            originalPrice: rental.originalPrice,
+            delayFee: rental.delayFee,
+            customer: {
+                id: rental.customerId,
+                name: rental.customerName,
+            },
+            game: {
+                id: rental.gameId,
+                name: rental.gameName,
+                categoryId: rental.categoryId,
+                categoryName: rental.categoryName,
+            },
+        }
+    }));
+});
+
 app.post('/rentals', async (req, res) => {
     const { customerId, gameId, daysRented } = req.body;
 
