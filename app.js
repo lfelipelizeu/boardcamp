@@ -321,20 +321,24 @@ app.get('/rentals', async (req, res) => {
 app.post('/rentals', async (req, res) => {
     const { customerId, gameId, daysRented } = req.body;
 
-    const customer = await connection.query(`SELECT * FROM customers WHERE id = $1`, [customerId]);
-    const gameRentals = await connection.query(`SELECT * FROM rentals WHERE "gameId" = $1`, [gameId]);
-    const game = await connection.query(`SELECT * FROM games WHERE id = $1`, [gameId]);
-    if (customer.rows.length === 0 || game.rows.length === 0 || game.rows[0].stockTotal === gameRentals.rows.length || daysRented < 1) {
-        res.sendStatus(400);
-        return;
+    try {
+        const customer = await connection.query(`SELECT * FROM customers WHERE id = $1`, [customerId]);
+        const gameRentals = await connection.query(`SELECT * FROM rentals WHERE "gameId" = $1`, [gameId]);
+        const game = await connection.query(`SELECT * FROM games WHERE id = $1`, [gameId]);
+        if (customer.rows.length === 0 || game.rows.length === 0 || game.rows[0].stockTotal === gameRentals.rows.length || daysRented < 1) {
+            res.sendStatus(400);
+            return;
+        }
+
+        await connection.query(`
+            INSERT INTO rentals 
+                ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee")
+            VALUES ($1, $2, $3, $4, $5, $6, $7)`, [customerId, gameId, dayjs().format('YYYY-MM-DD'), daysRented, null, daysRented*game.rows[0].pricePerDay, null]);
+
+        res.sendStatus(201);
+    } catch {
+        res.sendStatus(500);
     }
-
-    await connection.query(`
-        INSERT INTO rentals 
-            ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee")
-        VALUES ($1, $2, $3, $4, $5, $6, $7)`, [customerId, gameId, dayjs().format('YYYY-MM-DD'), daysRented, null, daysRented*game.rows[0].pricePerDay, null]);
-
-    res.sendStatus(201);
 });
 
 app.post('/rentals/:id/return', async (req, res) => {
