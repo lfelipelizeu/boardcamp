@@ -118,4 +118,27 @@ app.post('/games', async (req, res) => {
     }
 });
 
+app.get('/customers', async (req, res) => {
+    const cpfFilter = req.query.name;
+
+    try {
+        if (cpfFilter !== undefined) {
+            const customers = await connection.query(`
+                SELECT 
+                    * 
+                FROM customers 
+                    WHERE cpf LIKE $1;`, [cpfFilter + '%']);
+
+            res.status(200).send(customers.rows);
+            return;
+        }
+
+        const customers = await connection.query(`SELECT * FROM customers;`);
+
+        res.status(200).send(customers.rows);
+    } catch {
+        res.sendStatus(500);
+    }
+});
+
 app.listen(4000);
