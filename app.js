@@ -194,4 +194,48 @@ app.post('/customers', async (req, res) => {
     }
 });
 
+app.put('/customers/:id', async (req, res) => {
+    const { name, phone, cpf, birthday } = req.body;
+    const { id } = req.params;
+
+    const userSchema = joi.object({
+        name: joi.string().empty().trim().required(),
+        phone: joi.string().min(10).max(11).required(),
+        cpf: joi.string().length(11).required(),
+        birthday: joi.date().less('now').required(),
+    });
+
+    try {
+        const { error } = userSchema.validate({
+            name,
+            phone,
+            cpf,
+            birthday,
+        });
+
+        const customer = await connection.query(`SELECT * FROM customers WHERE id = $1;`, [id]);
+        if (customer.rows.length === 0) {
+            res.sendStatus(404);
+            return;
+        }
+
+        if (joi.isError(error) || isNaN(Number(cpf)) || isNaN(Number(phone))) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const customers = await connection.query('SELECT * FROM customers WHERE cpf = $1;', [cpf]);
+        if (customer.rows[0].cpf !== cpf && customers.rows.length !== 0) {
+            res.sendStatus(409);
+            return;
+        }
+
+        await connection.query(`UPDATE customers SET name = $1, phone = $2, cpf = $3, birthday = $4 WHERE id = $5;`, [name.trim(), phone, cpf, birthday, id]);
+
+        res.sendStatus(200);
+    } catch {
+        res.sendStatus(500);
+    }
+});
+
 app.listen(4000);
