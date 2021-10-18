@@ -337,4 +337,32 @@ app.post('/rentals', async (req, res) => {
     res.sendStatus(201);
 });
 
+app.post('/rentals/:id/return', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const rental = await connection.query(`SELECT * FROM rentals WHERE id = $1`, [id]);
+
+        if (rental.rows.length === 0) {
+            res.sendStatus(404);
+            return;
+        }
+        if (rental.rows[0].returnDate !== null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const correctReturnDate = dayjs(rental.rows[0].rentDate).add(rental.rows[0].daysRented, 'day');
+        const returnDate = dayjs();
+        const pricePerDay = rental.rows[0].originalPrice / rental.rows[0].daysRented;
+        const delayFee = returnDate.isSame(correctReturnDate) || returnDate.isBefore(correctReturnDate) ? 0 : returnDate.diff(correctReturnDate, 'day')*pricePerDay;
+
+        await connection.query(`UPDATE rentals SET "returnDate" = $1, "delayFee" = $2 WHERE id = $3`, [returnDate.format('YYYY-MM-DD'), delayFee, id]);
+        
+        res.sendStatus(200);
+    } catch {
+        res.sendStatus(500);
+    }
+});
+
 app.listen(4000);
