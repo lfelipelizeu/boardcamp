@@ -119,7 +119,7 @@ app.post('/games', async (req, res) => {
 });
 
 app.get('/customers', async (req, res) => {
-    const cpfFilter = req.query.name;
+    const cpfFilter = req.query.cpf;
 
     try {
         if (cpfFilter !== undefined) {
@@ -136,6 +136,43 @@ app.get('/customers', async (req, res) => {
         const customers = await connection.query(`SELECT * FROM customers;`);
 
         res.status(200).send(customers.rows);
+    } catch {
+        res.sendStatus(500);
+    }
+});
+
+app.post('/customers', async (req, res) => {
+    const { name, phone, cpf, birthday } = req.body;
+
+    const userSchema = joi.object({
+        name: joi.string().empty().trim().required(),
+        phone: joi.string().min(10).max(11).required(),
+        cpf: joi.string().length(11).required(),
+        birthday: joi.date().less('now').required(),
+    });
+
+    try {
+        const { error } = userSchema.validate({
+            name,
+            phone,
+            cpf,
+            birthday,
+        });
+
+        if (joi.isError(error) || isNaN(Number(cpf)) || isNaN(Number(phone))) {
+            res.sendStatus(400);
+            return;
+        }
+
+        const customers = await connection.query('SELECT * FROM customers WHERE cpf = $1;', [cpf]);
+        if (customers.rows.length !== 0) {
+            res.sendStatus(409);
+            return;
+        }
+
+        await connection.query(`INSERT INTO customers (name, phone, cpf, birthday) VALUES ($1,$2,$3,$4);`, [name.trim(), phone, cpf, birthday]);
+
+        res.sendStatus(201);
     } catch {
         res.sendStatus(500);
     }
