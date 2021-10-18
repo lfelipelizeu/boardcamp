@@ -365,4 +365,27 @@ app.post('/rentals/:id/return', async (req, res) => {
     }
 });
 
+app.delete('/rentals/:id', async function (req, res) {
+    const { id } = req.params;
+
+    try {
+        const rental = await connection.query(`SELECT * FROM rentals WHERE id = $1`, [id]);
+
+        if (rental.rows.length === 0) {
+            res.sendStatus(404);
+            return;
+        }
+        if (rental.rows[0].returnDate !== null) {
+            res.sendStatus(400);
+            return;
+        }
+
+        await connection.query(`DELETE FROM rentals WHERE id = $1`, [id]);
+
+        res.sendStatus(200);
+    } catch {
+        res.sendStatus(500);
+    }
+});
+
 app.listen(4000);
